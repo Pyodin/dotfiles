@@ -1,5 +1,6 @@
 alias v='vim'
 alias t='tmux new -A -s main'
+alias k='kubectl'
 alias kx='kubectx'
 alias kns='kubens'
 

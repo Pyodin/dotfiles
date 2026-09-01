@@ -34,7 +34,9 @@ and repairs links. Anything it would overwrite goes to `~/.dotfiles-backup/<time
 
 An apt package: add a line to `apt.txt`.
 
-Anything else: add a guarded block to `custom.sh` — `kubectl`, `k9s`, `flux` and `az` are there as examples.
+Anything else: add a guarded block to `custom.sh` — `az`, `kubectl`, `k9s` and `flux` are there as
+examples. Guard with `have`, not `command -v`: on WSL the Windows PATH is appended, so a tool
+installed on Windows looks present in Linux.
 
 A plugin: add a line to `plugins.txt`, then `./install.sh --skip-packages`. Plugins
 bundled with oh-my-zsh (`git`, `kubectl`, …) need only the name. Others need the git

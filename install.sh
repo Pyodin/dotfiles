@@ -102,8 +102,9 @@ git_identity() {
 default_shell() {
   local zsh
   zsh=$(command -v zsh) || { log "zsh not installed"; return; }
-  [ "${SHELL:-}" = "$zsh" ] && { log "already zsh"; return; }
-  chsh -s "$zsh" 2>/dev/null && log "set to zsh" || log "failed, run: chsh -s $zsh"
+  [ "$(getent passwd "$USER" | cut -d: -f7)" = "$zsh" ] && { log "already zsh"; return; }
+  log "chsh asks for your password"
+  chsh -s "$zsh" && log "set to zsh" || log "failed, run: chsh -s $zsh"
 }
 
 if (( link_only )); then

@@ -1,22 +1,25 @@
 #!/usr/bin/env bash
 # Tools not in the Ubuntu repos. Runs under `bash -e`; $SUDO comes from install.sh.
 
+# on WSL the Windows PATH is appended, so only count tools that resolve to a Linux path
+have() { case "$(type -P "$1")" in ''|/mnt/*) return 1 ;; esac; }
+
 ARCH=$(dpkg --print-architecture)
 
 # az, Azure CLI
-if ! command -v az >/dev/null; then
+if ! have az; then
   curl -fsSL https://aka.ms/InstallAzureCLIDeb | $SUDO bash
 fi
 
 # kubectl and kubelogin, via az
 if [ ! -x ~/.local/bin/kubectl ] || [ ! -x ~/.local/bin/kubelogin ]; then
-  az aks install-cli \
+  /usr/bin/az aks install-cli \
     --install-location ~/.local/bin/kubectl \
     --kubelogin-install-location ~/.local/bin/kubelogin
 fi
 
 # k9s, Kubernetes TUI
-if ! command -v k9s >/dev/null; then
+if ! have k9s; then
   curl -fsSL "https://github.com/derailed/k9s/releases/latest/download/k9s_Linux_$ARCH.tar.gz" |
     tar -xz -C /tmp k9s
   $SUDO install -m 755 /tmp/k9s /usr/local/bin/k9s
@@ -24,6 +27,6 @@ if ! command -v k9s >/dev/null; then
 fi
 
 # flux, GitOps CLI
-if ! command -v flux >/dev/null; then
+if ! have flux; then
   curl -fsSL https://fluxcd.io/install.sh | $SUDO bash
 fi
