@@ -1,0 +1,26 @@
+# Machine-local identity (name, email, signing keys) lives in ~/.gitconfig.local,
+# which install.sh generates and .gitignore excludes. Keeps this repo shareable.
+[include]
+	path = ~/.gitconfig.local
+
+[init]
+	defaultBranch = main
+
+[pull]
+	ff = only
+
+[push]
+	autoSetupRemote = true
+	default = simple
+
+[core]
+	editor = vim
+
+[diff]
+	algorithm = histogram
+
+[alias]
+	st = status --short --branch
+	lg = log --oneline --graph --decorate --all
+	last = log -1 --stat
+	unstage = reset HEAD --

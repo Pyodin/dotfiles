@@ -1,0 +1,9 @@
+# Never commit credentials or machine-local state.
+# These live in $HOME and must stay there.
+.gitconfig.local
+*.local
+
+# Editor / OS noise
+*.swp
+*.swo
+.DS_Store
