@@ -14,6 +14,10 @@ plugins=(${${(f)"$(<$DOTFILES/plugins.txt)"}%% *})
 fpath=("$ZSH/custom/plugins/zsh-autocomplete/Completions" $fpath)
 source "$ZSH/oh-my-zsh.sh"
 
+# zsh-autocomplete hijacks Ctrl+R, give it back to the classic search
+bindkey "^R" .history-incremental-search-backward
+
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
 source ~/.aliases.zsh
+typeset -U path
 export PATH="$HOME/.local/bin:$PATH"

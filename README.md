@@ -1,6 +1,6 @@
 # dotfiles
 
-My shell profile — zsh, oh-my-zsh, powerlevel10k, tmux, git, kubectl — on any Ubuntu machine.
+My shell profile — zsh, oh-my-zsh, powerlevel10k, tmux, git, kubectl, flux, az — on any Ubuntu machine.
 
 ```sh
 git clone https://github.com/<you>/dotfiles.git ~/dotfiles
@@ -34,7 +34,7 @@ and repairs links. Anything it would overwrite goes to `~/.dotfiles-backup/<time
 
 An apt package: add a line to `apt.txt`.
 
-Anything else: add a guarded block to `custom.sh` — `kubectl`, `k9s` and `azure-cli` are there as examples.
+Anything else: add a guarded block to `custom.sh` — `kubectl`, `k9s`, `flux` and `az` are there as examples.
 
 A plugin: add a line to `plugins.txt`, then `./install.sh --skip-packages`. Plugins
 bundled with oh-my-zsh (`git`, `kubectl`, …) need only the name. Others need the git
@@ -52,7 +52,7 @@ Git identity lives in `~/.gitconfig.local`, which `home/.gitconfig` includes and
 `.gitignore` excludes. `~/.aws`, `~/.azure`, `~/.kube` and `~/.config/k9s` are not
 tracked. Keep it that way if you push this publicly.
 
-## Two load-bearing details in .zshrc
+## Load-bearing details
 
 `$fpath` is seeded with zsh-autocomplete's `Completions/` *before* `oh-my-zsh.sh`
 is sourced: oh-my-zsh runs `compinit` before sourcing plugins, so without it every
@@ -61,3 +61,11 @@ completion fails with `command not found: _autocomplete__unambiguous`.
 `fast-syntax-highlighting` is listed before `zsh-autocomplete` in `plugins.txt`,
 because it wraps every ZLE widget at load time and zsh-autocomplete pre-declares
 placeholder widgets it only defines lazily.
+
+`.aliases.zsh` redefines `az` to call the CLI's python directly. `/usr/bin/az` is a
+bash wrapper, and `az aks bastion tunnel` opens whatever shell launched it — so
+through the wrapper it always opens bash instead of zsh.
+
+`.zshrc` rebinds Ctrl+R to zsh's own `.history-incremental-search-backward`, because
+zsh-autocomplete replaces that widget with its menu. `.tmux.conf` binds right-click to
+`paste-buffer`, because tmux 3.x opens a context menu on right-click when `mouse` is on.

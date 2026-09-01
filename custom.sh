@@ -3,13 +3,19 @@
 
 ARCH=$(dpkg --print-architecture)
 
-if ! command -v kubectl >/dev/null; then
-  VERSION=$(curl -fsSL https://dl.k8s.io/release/stable.txt)
-  curl -fsSL "https://dl.k8s.io/release/$VERSION/bin/linux/$ARCH/kubectl" -o /tmp/kubectl
-  $SUDO install -m 755 /tmp/kubectl /usr/local/bin/kubectl
-  rm -f /tmp/kubectl
+# az, Azure CLI
+if ! command -v az >/dev/null; then
+  curl -fsSL https://aka.ms/InstallAzureCLIDeb | $SUDO bash
 fi
 
+# kubectl and kubelogin, via az
+if [ ! -x ~/.local/bin/kubectl ] || [ ! -x ~/.local/bin/kubelogin ]; then
+  az aks install-cli \
+    --install-location ~/.local/bin/kubectl \
+    --kubelogin-install-location ~/.local/bin/kubelogin
+fi
+
+# k9s, Kubernetes TUI
 if ! command -v k9s >/dev/null; then
   curl -fsSL "https://github.com/derailed/k9s/releases/latest/download/k9s_Linux_$ARCH.tar.gz" |
     tar -xz -C /tmp k9s
@@ -17,6 +23,7 @@ if ! command -v k9s >/dev/null; then
   rm -f /tmp/k9s
 fi
 
-if ! command -v az >/dev/null; then
-  curl -fsSL https://aka.ms/InstallAzureCLIDeb | $SUDO bash
+# flux, GitOps CLI
+if ! command -v flux >/dev/null; then
+  curl -fsSL https://fluxcd.io/install.sh | $SUDO bash
 fi
