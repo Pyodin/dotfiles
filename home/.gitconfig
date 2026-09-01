@@ -1,5 +1,3 @@
-# Machine-local identity (name, email, signing keys) lives in ~/.gitconfig.local,
-# which install.sh generates and .gitignore excludes. Keeps this repo shareable.
 [include]
 	path = ~/.gitconfig.local
 
