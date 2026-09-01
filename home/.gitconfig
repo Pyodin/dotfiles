@@ -22,3 +22,5 @@
 	lg = log --oneline --graph --decorate --all
 	last = log -1 --stat
 	unstage = reset HEAD --
+[credential]
+	helper = cache
