@@ -6,14 +6,6 @@ DOTFILES="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 BACKUP="$HOME/.dotfiles-backup/$(date +%Y%m%d-%H%M%S)"
 CUSTOM="$HOME/.oh-my-zsh/custom"
 
-PLUGINS="
-romkatv/powerlevel10k|themes/powerlevel10k
-zsh-users/zsh-autosuggestions|plugins/zsh-autosuggestions
-MichaelAquilina/zsh-you-should-use|plugins/you-should-use
-zdharma-continuum/fast-syntax-highlighting|plugins/fast-syntax-highlighting
-marlonrichert/zsh-autocomplete|plugins/zsh-autocomplete
-"
-
 link_only=0
 skip_packages=0
 for arg in "$@"; do
@@ -31,12 +23,22 @@ SUDO=""
 step() { printf '\n\033[1m%s\033[0m\n' "$*"; }
 log()  { printf '  %s\n' "$*"; }
 
-packages() {
+apt_packages() {
   (( skip_packages )) && { log "skipped"; return; }
-  if SUDO="$SUDO" bash -e "$DOTFILES/packages.sh"; then
+  $SUDO apt-get update -qq
+  if grep -v '^#' "$DOTFILES/apt.txt" | xargs $SUDO apt-get install -y -qq; then
     log "done"
   else
-    log "packages.sh failed (exit $?), continuing"
+    log "apt failed, continuing"
+  fi
+}
+
+custom_packages() {
+  (( skip_packages )) && { log "skipped"; return; }
+  if SUDO="$SUDO" bash -e "$DOTFILES/custom.sh"; then
+    log "done"
+  else
+    log "custom.sh failed, continuing"
   fi
 }
 
@@ -46,19 +48,26 @@ oh_my_zsh() {
   log "installed"
 }
 
+clone_or_update() {
+  local url=$1 dir=$2 name=${2##*/}
+  if [ -d "$dir/.git" ]; then
+    git -C "$dir" pull --ff-only -q 2>/dev/null && log "$name updated" || log "$name kept"
+  else
+    git clone --depth 1 -q "$url" "$dir" </dev/null
+    log "$name cloned"
+  fi
+}
+
+theme() {
+  clone_or_update https://github.com/romkatv/powerlevel10k "$CUSTOM/themes/powerlevel10k"
+}
+
 plugins() {
-  local repo dir name
-  while IFS='|' read -r repo dir; do
-    [ -n "$repo" ] || continue
-    name="${dir##*/}"
-    dir="$CUSTOM/$dir"
-    if [ -d "$dir/.git" ]; then
-      git -C "$dir" pull --ff-only -q 2>/dev/null && log "$name updated" || log "$name kept"
-    else
-      git clone --depth 1 -q "https://github.com/$repo.git" "$dir"
-      log "$name cloned"
-    fi
-  done <<< "$PLUGINS"
+  local name url
+  while read -r name url; do
+    [ -n "$url" ] || continue
+    clone_or_update "$url" "$CUSTOM/plugins/$name"
+  done < "$DOTFILES/plugins.txt"
 }
 
 link() {
@@ -100,12 +109,14 @@ default_shell() {
 if (( link_only )); then
   step "Dotfiles"; link
 else
-  step "Packages";      packages
-  step "oh-my-zsh";     oh_my_zsh
-  step "Plugins";       plugins
-  step "Dotfiles";      link
-  step "Git identity";  git_identity
-  step "Default shell"; default_shell
+  step "Apt packages";    apt_packages
+  step "Custom packages"; custom_packages
+  step "oh-my-zsh";       oh_my_zsh
+  step "Theme";           theme
+  step "Plugins";         plugins
+  step "Dotfiles";        link
+  step "Git identity";    git_identity
+  step "Default shell";   default_shell
 fi
 
 step "Done"

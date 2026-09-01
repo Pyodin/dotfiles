@@ -1,0 +1,6 @@
+git
+kubectl
+zsh-autosuggestions       https://github.com/zsh-users/zsh-autosuggestions
+you-should-use            https://github.com/MichaelAquilina/zsh-you-should-use
+fast-syntax-highlighting  https://github.com/zdharma-continuum/fast-syntax-highlighting
+zsh-autocomplete          https://github.com/marlonrichert/zsh-autocomplete
