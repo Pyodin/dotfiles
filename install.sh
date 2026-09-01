@@ -1,12 +1,14 @@
 #!/usr/bin/env bash
 #
-# Bootstrap a machine: install core tools, then symlink dotfiles into $HOME.
+# Bootstrap an Ubuntu machine: install tools, then symlink dotfiles into $HOME.
 # Safe to re-run; every step is idempotent.
 #
-#   ./install.sh                 install packages, plugins, and link dotfiles
+#   ./install.sh                 install everything and link dotfiles
 #   ./install.sh --link-only     only (re)create the symlinks
-#   ./install.sh --skip-packages skip the package manager step
+#   ./install.sh --skip-packages skip packages.sh
 #   ./install.sh --help
+#
+# What gets installed is declared in packages.sh - edit that, not this file.
 
 set -euo pipefail
 
@@ -26,13 +28,17 @@ else
   BOLD=; RED=; GREEN=; YELLOW=; BLUE=; RESET=
 fi
 
-info()  { printf '%s==>%s %s\n'  "$BLUE$BOLD" "$RESET" "$*"; }
-ok()    { printf '  %s+%s %s\n'  "$GREEN" "$RESET" "$*"; }
-skip()  { printf '  %s=%s %s\n'  "$YELLOW" "$RESET" "$*"; }
-warn()  { printf '  %s!%s %s\n'  "$YELLOW" "$RESET" "$*" >&2; }
-die()   { printf '%serror:%s %s\n' "$RED$BOLD" "$RESET" "$*" >&2; exit 1; }
+info() { printf '%s==>%s %s\n'  "$BLUE$BOLD" "$RESET" "$*"; }
+ok()   { printf '  %s+%s %s\n'  "$GREEN" "$RESET" "$*"; }
+skip() { printf '  %s=%s %s\n'  "$YELLOW" "$RESET" "$*"; }
+warn() { printf '  %s!%s %s\n'  "$YELLOW" "$RESET" "$*" >&2; }
+die()  { printf '%serror:%s %s\n' "$RED$BOLD" "$RESET" "$*" >&2; exit 1; }
 
-usage() { sed -n '2,10p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 0; }
+# Print the comment header, stopping at the first non-comment line.
+usage() {
+  awk 'NR>1 && /^#/ { sub(/^# ?/, ""); print; next } NR>1 { exit }' "${BASH_SOURCE[0]}"
+  exit 0
+}
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -44,70 +50,37 @@ while [ $# -gt 0 ]; do
   shift
 done
 
-# -------------------------------------------------------------- platform ----
-OS="$(uname -s)"
-PKG=""
-IS_WSL=0
+# packages.sh uses this; empty when we are already root.
+SUDO=""
+if [ "$(id -u)" -ne 0 ]; then
+  command -v sudo >/dev/null 2>&1 && SUDO=sudo
+fi
 
-grep -qi microsoft /proc/version 2>/dev/null && IS_WSL=1
-
-detect_platform() {
-  case "$OS" in
-    Linux)
-      if   command -v apt-get >/dev/null 2>&1; then PKG=apt
-      elif command -v dnf     >/dev/null 2>&1; then PKG=dnf
-      elif command -v pacman  >/dev/null 2>&1; then PKG=pacman
-      elif command -v zypper  >/dev/null 2>&1; then PKG=zypper
-      fi
-      ;;
-    Darwin)
-      command -v brew >/dev/null 2>&1 && PKG=brew
-      ;;
-  esac
-
-  local label="$OS"
-  [ "$IS_WSL" -eq 1 ] && label="$OS (WSL)"
-  info "Platform: $label, package manager: ${PKG:-none found}"
-}
-
-# --------------------------------------------------------------- packages ---
-# Core only: a working shell, multiplexer, editor, and the tools needed to
-# fetch everything else.
-PACKAGES_COMMON="zsh git tmux vim curl"
-
+# -------------------------------------------------------------- packages ----
 install_packages() {
   if [ "$SKIP_PACKAGES" -eq 1 ]; then
-    skip "package install (--skip-packages)"
+    skip "packages.sh (--skip-packages)"
     return
   fi
 
-  info "Installing core packages"
+  local script="$DOTFILES/packages.sh"
+  [ -f "$script" ] || { skip "no packages.sh"; return; }
 
-  if [ -z "$PKG" ]; then
-    warn "no supported package manager found; install these yourself:"
-    warn "  $PACKAGES_COMMON"
-    return
+  command -v apt-get >/dev/null 2>&1 \
+    || die "this script targets Ubuntu; no apt-get found (use --link-only)"
+
+  [ -n "$SUDO" ] || [ "$(id -u)" -eq 0 ] \
+    || die "need root or sudo to install packages (or use --skip-packages)"
+
+  info "Running packages.sh"
+  # Run as a child with -e so the first real failure is reported rather than
+  # masked by whatever command happens to come last. Failing here must not
+  # stop the dotfile linking below.
+  if SUDO="$SUDO" bash -e "$script"; then
+    ok "packages installed"
+  else
+    warn "packages.sh failed (exit $?); continuing with the rest"
   fi
-
-  # Only sudo when we are not already root.
-  local SUDO=""
-  if [ "$(id -u)" -ne 0 ]; then
-    command -v sudo >/dev/null 2>&1 && SUDO=sudo \
-      || die "need root or sudo to install packages (or use --skip-packages)"
-  fi
-
-  case "$PKG" in
-    apt)
-      $SUDO apt-get update -qq
-      # shellcheck disable=SC2086
-      $SUDO DEBIAN_FRONTEND=noninteractive apt-get install -y -qq $PACKAGES_COMMON
-      ;;
-    dnf)    $SUDO dnf install -y $PACKAGES_COMMON ;;
-    pacman) $SUDO pacman -Sy --needed --noconfirm $PACKAGES_COMMON ;;
-    zypper) $SUDO zypper --non-interactive install $PACKAGES_COMMON ;;
-    brew)   brew install $PACKAGES_COMMON ;;
-  esac
-  ok "core packages present"
 }
 
 # ------------------------------------------------------------ oh-my-zsh -----
@@ -117,9 +90,7 @@ install_oh_my_zsh() {
     skip "oh-my-zsh already installed"
     return
   fi
-  if [ -e "$ZSH_DIR" ]; then
-    die "$ZSH_DIR exists but is not a git checkout; move it aside and re-run"
-  fi
+  [ -e "$ZSH_DIR" ] && die "$ZSH_DIR exists but is not a git checkout; move it aside"
   git clone --depth 1 -q https://github.com/ohmyzsh/ohmyzsh.git "$ZSH_DIR"
   ok "oh-my-zsh installed"
 }
@@ -136,12 +107,12 @@ https://github.com/marlonrichert/zsh-autocomplete.git|$ZSH_CUSTOM/plugins/zsh-au
 
 install_zsh_plugins() {
   info "Setting up zsh theme and plugins"
-  local url dest name entry
+  local url dest name
   while IFS='|' read -r url dest; do
     [ -n "${url:-}" ] || continue
     name="$(basename "$dest")"
     if [ -d "$dest/.git" ]; then
-      # Already there: try to update, but never fail the whole install for it.
+      # Already there: try to update, but never fail the install for it.
       if git -C "$dest" pull --ff-only -q 2>/dev/null; then
         ok "$name (updated)"
       else
@@ -185,7 +156,7 @@ link_dotfiles() {
   done
 }
 
-# ------------------------------------------------------- local git identity --
+# ------------------------------------------------------ local git identity ---
 # Kept out of the repo so the repo stays shareable.
 setup_git_identity() {
   info "Git identity"
@@ -198,13 +169,13 @@ setup_git_identity() {
 
   local name="" email=""
   if [ -t 0 ]; then
-    printf '  git user.name : '  ; read -r name
-    printf '  git user.email: '  ; read -r email
+    printf '  git user.name : '; read -r name
+    printf '  git user.email: '; read -r email
   fi
 
   if [ -z "$name" ] || [ -z "$email" ]; then
     cat > "$target" <<'TEMPLATE'
-# Fill these in, then run: git config --global --list
+# Fill these in, then check with: git config --get user.email
 [user]
 	name =
 	email =
@@ -233,12 +204,8 @@ set_default_shell() {
     return
   fi
 
-  # /etc/shells must list it or chsh refuses.
-  if [ -w /etc/shells ] || grep -qxF "$zsh_path" /etc/shells 2>/dev/null; then
-    :
-  else
-    warn "$zsh_path missing from /etc/shells; you may need to add it"
-  fi
+  grep -qxF "$zsh_path" /etc/shells 2>/dev/null \
+    || warn "$zsh_path missing from /etc/shells; you may need to add it"
 
   if chsh -s "$zsh_path" 2>/dev/null; then
     ok "default shell set to zsh (takes effect on next login)"
@@ -250,7 +217,6 @@ set_default_shell() {
 # ------------------------------------------------------------------ main ----
 main() {
   info "Dotfiles: $DOTFILES"
-  detect_platform
 
   if [ "$LINK_ONLY" -eq 1 ]; then
     link_dotfiles

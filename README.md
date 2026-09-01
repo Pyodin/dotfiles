@@ -17,6 +17,7 @@ symlinks everything in `home/` into `$HOME`.
 ## Layout
 
 ```
+packages.sh     what to install - edit this to add tools
 home/           files symlinked into $HOME (1:1, by filename)
   .zshrc
   .p10k.zsh     powerlevel10k prompt config
@@ -25,27 +26,41 @@ home/           files symlinked into $HOME (1:1, by filename)
 install.sh      the bootstrap script
 ```
 
+Targets Ubuntu.
+
+## Adding a tool
+
+Edit `packages.sh`. Most things are one word on the apt line:
+
+```sh
+$SUDO apt-get install -y zsh git tmux vim curl ripgrep fzf jq
+```
+
+Anything not in the Ubuntu repos gets its own guarded block lower down in the
+same file - `k9s` (GitHub release) and `azure-cli` (Microsoft apt repo) are
+already there as working examples. Wrap new ones in a
+`if ! command -v <tool>` check so re-running stays cheap.
+
+`packages.sh` runs under `bash -e`, so the first failing command stops the file
+and `install.sh` reports it. Your dotfiles still get linked either way.
+
 ## What install.sh does
 
-1. **Detects the platform** — WSL vs native, and picks a package manager
-   (`apt`, `dnf`, `pacman`, `zypper`, or `brew`). Warns instead of failing on
-   anything unrecognised.
-2. **Installs core packages** — `zsh git tmux vim curl`. Nothing else; language
-   runtimes and cloud tooling are installed per machine, on purpose.
-3. **Installs oh-my-zsh** and clones the theme and plugins that `.zshrc` expects:
+1. **Runs `packages.sh`** to install your tools.
+2. **Installs oh-my-zsh** and clones the theme and plugins that `.zshrc` expects:
    powerlevel10k, zsh-autosuggestions, you-should-use, fast-syntax-highlighting,
    zsh-autocomplete.
-4. **Symlinks** every `home/.*` file into `$HOME`. Anything already in the way is
+3. **Symlinks** every `home/.*` file into `$HOME`. Anything already in the way is
    moved to `~/.dotfiles-backup/<timestamp>/` first — it never overwrites.
-5. **Writes `~/.gitconfig.local`** with your name and email (prompts for them).
-6. **Sets zsh as the default shell** via `chsh`.
+4. **Writes `~/.gitconfig.local`** with your name and email (prompts for them).
+5. **Sets zsh as the default shell** via `chsh`.
 
 Every step is idempotent — re-run it any time to pull plugin updates and repair
 links.
 
 ```sh
 ./install.sh --link-only       # just redo the symlinks
-./install.sh --skip-packages   # skip the package manager step
+./install.sh --skip-packages   # skip packages.sh
 ./install.sh --help
 ```
 
@@ -55,6 +70,13 @@ Git identity lives in `~/.gitconfig.local`, which `home/.gitconfig` pulls in via
 `[include]` and `.gitignore` excludes. Credential directories — `~/.aws`,
 `~/.azure`, `~/.kube`, `~/.config/k9s` — are deliberately not tracked. Keep it
 that way if you ever push this publicly.
+
+## Not installed by this repo
+
+`docker` on WSL comes from Docker Desktop on the Windows side — `/usr/bin/docker`
+is a symlink into `/mnt/wsl/docker-desktop/`. Enable it in Docker Desktop →
+Settings → Resources → WSL integration. Same for `npm` and `code`, which resolve
+to Windows binaries through `/mnt/c`.
 
 ## Adding a dotfile
 
