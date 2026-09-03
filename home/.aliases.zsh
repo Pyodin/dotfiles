@@ -10,3 +10,6 @@ alias kns='kubens'
 alias dotfiles='cd $DOTFILES'
 alias aliases='vim $DOTFILES/home/.aliases.zsh'
 alias reload='exec zsh'
+
+#Wsl
+alias paul='cd /mnt/c/Users/PaulBourhis'

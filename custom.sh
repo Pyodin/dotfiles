@@ -30,3 +30,12 @@ fi
 if ! have flux; then
   curl -fsSL https://fluxcd.io/install.sh | $SUDO bash
 fi
+
+# win32yank, clipboard bridge for tmux right-click paste under WSL
+if [ ! -x ~/.local/bin/win32yank.exe ]; then
+  curl -fsSL -o /tmp/win32yank.zip \
+    https://github.com/equalsraf/win32yank/releases/download/v0.1.1/win32yank-x64.zip
+  unzip -o -q /tmp/win32yank.zip -d /tmp win32yank.exe
+  install -m 755 /tmp/win32yank.exe ~/.local/bin/win32yank.exe
+  rm -f /tmp/win32yank.zip /tmp/win32yank.exe
+fi

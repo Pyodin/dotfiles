@@ -21,3 +21,8 @@ bindkey "^R" .history-incremental-search-backward
 source ~/.aliases.zsh
 typeset -U path
 export PATH="$HOME/.local/bin:$PATH"
+
+# bracketed-paste-magic replays each pasted character through zle; with
+# autosuggestions, fast-syntax-highlighting and autocomplete recomputing per
+# character a paste crawls. limit it to plain inserts.
+zstyle ':bracketed-paste-magic' active-widgets '.self-*'
