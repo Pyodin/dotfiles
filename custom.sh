@@ -31,6 +31,28 @@ if ! have flux; then
   curl -fsSL https://fluxcd.io/install.sh | $SUDO bash
 fi
 
+# Argocd
+if ! have argocd; then
+  curl -sSL -o argocd-linux-amd64 https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
+  sudo install -m 555 argocd-linux-amd64 /usr/local/bin/argocd
+  rm argocd-linux-amd64
+fi
+
+# Helm
+if ! have helm; then
+  curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-4
+  chmod 700 get_helm.sh
+  ./get_helm.sh
+  rm -f get_helm.sh
+fi
+
+# Terraform 
+if ! have terraform; then
+  wget -O - https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
+  echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(grep -oP '(?<=UBUNTU_CODENAME=).*' /etc/os-release || lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
+  sudo apt update && sudo apt install terraform
+fi
+
 # win32yank, clipboard bridge for tmux right-click paste under WSL
 if [ ! -x ~/.local/bin/win32yank.exe ]; then
   curl -fsSL -o /tmp/win32yank.zip \
@@ -39,3 +61,4 @@ if [ ! -x ~/.local/bin/win32yank.exe ]; then
   install -m 755 /tmp/win32yank.exe ~/.local/bin/win32yank.exe
   rm -f /tmp/win32yank.zip /tmp/win32yank.exe
 fi
+

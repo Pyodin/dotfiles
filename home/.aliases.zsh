@@ -13,3 +13,4 @@ alias reload='exec zsh'
 
 #Wsl
 alias paul='cd /mnt/c/Users/PaulBourhis'
+alias GIT='cd /mnt/c/Users/PaulBourhis/GIT'

@@ -4,3 +4,4 @@ tmux
 vim
 curl
 kubectx
+jq
